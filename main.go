@@ -1,10 +1,24 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/joho/godotenv"
+	_ "github.com/joho/godotenv"
 	"html/template"
+	"log"
 	"net/http"
+	"os"
+	_ "os"
 )
+
+func init() {
+	// Load values from .env into the system
+	if err := godotenv.Load(); err != nil {
+		log.Print("No .env file found")
+	}
+}
 
 type Article struct {
 	Id                     uint16
@@ -45,6 +59,16 @@ func saveArticle(w http.ResponseWriter, r *http.Request) {
 	fullText := r.FormValue("full_text")
 
 	fmt.Println(title, anons, fullText)
+
+	db := connectDb()
+
+	insert, err := db.Query(fmt.Sprintf("INSERT INTO `articles` (`title`, `anons`, `full_text`) VALUES('%s', '%s', '%s')", title, anons, fullText))
+	if err != nil {
+		panic(err)
+	}
+	defer insert.Close()
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func handleFunc() {
@@ -57,4 +81,16 @@ func handleFunc() {
 
 func main() {
 	handleFunc()
+}
+
+func connectDb() *sql.DB {
+	dataSourceName, _ := os.LookupEnv("DB_SOURCE_NAME")
+	dbDriver, _ := os.LookupEnv("DB_DRIVER")
+
+	db, err := sql.Open(dbDriver, dataSourceName)
+	if err != nil {
+		panic(err)
+	}
+
+	return db
 }
