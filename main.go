@@ -26,14 +26,16 @@ type Article struct {
 }
 
 var posts []Article
+var showPost = Article{}
 var templates = []string{
-	"templates/index.html",
+	//"templates/index.html",
 	"templates/header.html",
 	"templates/footer.html",
-	"templates/create.html",
+	//"templates/create.html",
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
+	templates = append(templates, "templates/index.html")
 	t, err := template.ParseFiles(templates...)
 	checkErr(err)
 
@@ -56,6 +58,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 }
 
 func create(w http.ResponseWriter, r *http.Request) {
+	templates = append(templates, "templates/create.html")
 	t, err := template.ParseFiles(templates...)
 
 	if err != nil {
@@ -83,10 +86,28 @@ func saveArticle(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-func showPost(w http.ResponseWriter, r *http.Request) {
+func show_post(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "ID %v\n", vars["id"])
+	templates = append(templates, "templates/show.html")
+	t, err := template.ParseFiles(templates...)
+	checkErr(err)
+
+	db := connectDb()
+	defer db.Close()
+
+	res, err := db.Query(fmt.Sprintf("SELECT * FROM `articles` WHERE `id` = %s", vars["id"]))
+	checkErr(err)
+
+	showPost = Article{}
+	for res.Next() {
+		var post Article
+		err = res.Scan(&post.Id, &post.Title, &post.Anons, &post.FullText)
+		checkErr(err)
+
+		showPost = post
+	}
+
+	t.ExecuteTemplate(w, "show", showPost)
 }
 
 func handleFunc() {
@@ -94,7 +115,7 @@ func handleFunc() {
 	rtr.HandleFunc("/", index).Methods("GET")
 	rtr.HandleFunc("/create", create).Methods("GET")
 	rtr.HandleFunc("/save_article", saveArticle).Methods("POST")
-	rtr.HandleFunc("/post/{id:[0-9]+}", showPost).Methods("GET")
+	rtr.HandleFunc("/post/{id:[0-9]+}", show_post).Methods("GET")
 
 	http.Handle("/", rtr)
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static/"))))
