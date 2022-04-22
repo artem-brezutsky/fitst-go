@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
-	_ "github.com/joho/godotenv"
 	"html/template"
 	"log"
 	"net/http"
@@ -35,12 +35,24 @@ var templates = []string{
 
 func index(w http.ResponseWriter, r *http.Request) {
 	t, err := template.ParseFiles(templates...)
+	checkErr(err)
 
-	if err != nil {
-		fmt.Fprintf(w, err.Error())
+	db := connectDb()
+	res, err := db.Query("SELECT * FROM `articles`")
+	checkErr(err)
+
+	posts = []Article{}
+	for res.Next() {
+		var post Article
+		err = res.Scan(&post.Id, &post.Title, &post.Anons, &post.FullText)
+		checkErr(err)
+
+		posts = append(posts, post)
 	}
 
-	t.ExecuteTemplate(w, "index", nil)
+	defer db.Close()
+
+	t.ExecuteTemplate(w, "index", posts)
 }
 
 func create(w http.ResponseWriter, r *http.Request) {
@@ -71,11 +83,21 @@ func saveArticle(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
+func showPost(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "ID %v\n", vars["id"])
+}
+
 func handleFunc() {
+	rtr := mux.NewRouter()
+	rtr.HandleFunc("/", index).Methods("GET")
+	rtr.HandleFunc("/create", create).Methods("GET")
+	rtr.HandleFunc("/save_article", saveArticle).Methods("POST")
+	rtr.HandleFunc("/post/{id:[0-9]+}", showPost).Methods("GET")
+
+	http.Handle("/", rtr)
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static/"))))
-	http.HandleFunc("/", index)
-	http.HandleFunc("/create", create)
-	http.HandleFunc("/save_article", saveArticle)
 	http.ListenAndServe(":8080", nil)
 }
 
@@ -88,9 +110,13 @@ func connectDb() *sql.DB {
 	dbDriver, _ := os.LookupEnv("DB_DRIVER")
 
 	db, err := sql.Open(dbDriver, dataSourceName)
+	checkErr(err)
+
+	return db
+}
+
+func checkErr(err error) {
 	if err != nil {
 		panic(err)
 	}
-
-	return db
 }
