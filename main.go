@@ -51,21 +51,23 @@ func index(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var i int = 10
-	switch i {
-	case 0:
-		fmt.Println("Zero")
-	case 1:
-		fmt.Println("One")
-	case 2:
-		fmt.Println("Two")
-	case 3:
-		fmt.Println("Three")
-	case 4:
-		fmt.Println("Four")
-	case 5:
-		fmt.Println("Five")
-	default:
-		fmt.Println("Unknown Number")
+	for ; i < 100; i++ {
+		switch i {
+		case 0:
+			fmt.Println(fmt.Sprintf("Zero: %d", i))
+		case 1:
+			fmt.Println(fmt.Sprintf("One: %d", i))
+		case 2:
+			fmt.Println(fmt.Sprintf("Two: %d", i))
+		case 3:
+			fmt.Println(fmt.Sprintf("Three: %d", i))
+		case 4:
+			fmt.Println(fmt.Sprintf("Four: %d", i))
+		case 5:
+			fmt.Println(fmt.Sprintf("Five: %d", i))
+		default:
+			fmt.Println("Unknown Number")
+		}
 	}
 
 	defer db.Close()
