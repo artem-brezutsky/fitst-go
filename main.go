@@ -28,10 +28,8 @@ type Article struct {
 var posts []Article
 var showPost = Article{}
 var templates = []string{
-	//"templates/index.html",
 	"templates/header.html",
 	"templates/footer.html",
-	//"templates/create.html",
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
@@ -122,10 +120,6 @@ func handleFunc() {
 	http.ListenAndServe(":8080", nil)
 }
 
-func main() {
-	handleFunc()
-}
-
 func connectDb() *sql.DB {
 	dataSourceName, _ := os.LookupEnv("DB_SOURCE_NAME")
 	dbDriver, _ := os.LookupEnv("DB_DRIVER")
@@ -140,4 +134,8 @@ func checkErr(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func main() {
+	handleFunc()
 }
